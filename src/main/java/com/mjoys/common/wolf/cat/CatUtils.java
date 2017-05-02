@@ -1,7 +1,6 @@
 package com.mjoys.common.wolf.cat;
 
 import com.dianping.cat.Cat;
-import com.mjoys.advert.biz.utils.BlowfishUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -11,7 +10,7 @@ import org.slf4j.LoggerFactory;
 public class CatUtils {
 
     /** The logger. */
-    private static Logger logger = LoggerFactory.getLogger(BlowfishUtils.class);
+    private static Logger logger = LoggerFactory.getLogger(CatUtils.class);
 
     public static void log(String serviceName) {
         try {

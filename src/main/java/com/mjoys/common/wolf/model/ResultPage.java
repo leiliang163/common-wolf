@@ -10,11 +10,10 @@ import java.io.Serializable;
 import java.util.List;
 
 /**
- * <一句话功能描述> <功能详细描述>.
- *
- * @param <T> the generic type
- * @author: leiliang
- * @version:
+ * 创 建 人 : leiliang.<br/>
+ * 创建时间 : 2017/4/14 15:59.<br/>
+ * 功能描述 : .<br/>
+ * 变更记录 : .<br/>
  */
 public class ResultPage<T> implements Serializable {
 

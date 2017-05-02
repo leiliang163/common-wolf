@@ -1,7 +1,6 @@
 /**
  * Project Name:engine-common<br>
  * File Name:TimeFormat.java<br>
- * Package Name:cn.com.duiba.tuia.constants<br>
  * Date:2016年11月25日下午3:03:48<br>
  * Copyright (c) 2016, duiba.com.cn All Rights Reserved.<br>
  */

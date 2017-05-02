@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.JedisPoolConfig;
 import redis.clients.jedis.JedisShardInfo;
+import redis.clients.jedis.ShardedJedis;
 import redis.clients.jedis.ShardedJedisPool;
 
 import java.util.ArrayList;
@@ -20,15 +21,10 @@ public class BaseShardedJedisClient {
 
     protected ShardedJedisPool jedisPool = null;
 
-    private String             clusterNodes;
-
-    public BaseShardedJedisClient() {
-    }
-
     /**
      * 初始化redis.
      */
-    protected void initJedisPool() {
+    protected void initJedisPool(String clusterNodes) {
         try {
             String[] redisIPs = clusterNodes.split(",");
             if (redisIPs == null) {
@@ -56,6 +52,16 @@ public class BaseShardedJedisClient {
             logger.error("redis 初始化失败", e);
             throw new IllegalArgumentException("请检查配置项和参数值", e);
         }
+    }
 
+    /**
+     * Close resource.
+     *
+     * @param resource the resource
+     */
+    protected void closeResource(ShardedJedis resource) {
+        if (resource != null) {
+            resource.close();
+        }
     }
 }

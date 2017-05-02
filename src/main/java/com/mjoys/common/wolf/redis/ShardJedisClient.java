@@ -1,9 +1,10 @@
 package com.mjoys.common.wolf.redis;
 
 import com.mjoys.common.wolf.model.ReturnValue;
-import org.springframework.beans.factory.InitializingBean;
+import redis.clients.jedis.BinaryJedisPubSub;
+import redis.clients.jedis.Jedis;
+import redis.clients.jedis.JedisPubSub;
 import redis.clients.jedis.ShardedJedis;
-import redis.clients.jedis.ShardedJedisPool;
 
 import java.util.List;
 import java.util.Map;
@@ -12,25 +13,17 @@ import java.util.Set;
 /**
  * The type Shard jedis client.
  */
-public class ShardJedisClient extends BaseShardedJedisClient implements InitializingBean {
-
-    /**
-     * The Resource.
-     */
-    protected ShardedJedis resource;
+public class ShardJedisClient extends BaseShardedJedisClient {
 
     /**
      * Instantiates a new Shard jedis client.
      *
-     * @param jedisPool the jedis pool
+     * @param clusterNodes
+     * 集群节点，样例：192.168.1.174:8901,192.168.1.174:8902,192.168.1.174:8903
+     * @throws Exception the exception
      */
-    public ShardJedisClient(ShardedJedisPool jedisPool) {
-    }
-
-    @Override
-    public void afterPropertiesSet() throws Exception {
-        initJedisPool();
-        this.resource = jedisPool.getResource();
+    public ShardJedisClient(String clusterNodes) throws Exception {
+        initJedisPool(clusterNodes);
     }
 
     /**
@@ -40,11 +33,12 @@ public class ShardJedisClient extends BaseShardedJedisClient implements Initiali
      * @return the return value
      */
     public ReturnValue<byte[]> get(byte[] key) {
+        ShardedJedis resource = null;
         try {
-
+            resource = jedisPool.getResource();
             return ReturnValue.successResult(resource.get(key));
         } finally {
-            resource.close();
+            closeResource(resource);
         }
     }
 
@@ -55,10 +49,12 @@ public class ShardJedisClient extends BaseShardedJedisClient implements Initiali
      * @return the return value
      */
     public ReturnValue<String> get(String key) {
+        ShardedJedis resource = null;
         try {
+            resource = jedisPool.getResource();
             return ReturnValue.successResult(resource.get(key));
         } finally {
-            resource.close();
+            closeResource(resource);
         }
     }
 
@@ -69,10 +65,12 @@ public class ShardJedisClient extends BaseShardedJedisClient implements Initiali
      * @return the return value
      */
     public ReturnValue<Boolean> exists(byte[] key) {
+        ShardedJedis resource = null;
         try {
+            resource = jedisPool.getResource();
             return ReturnValue.successResult(resource.exists(key));
         } finally {
-            resource.close();
+            closeResource(resource);
         }
     }
 
@@ -83,14 +81,13 @@ public class ShardJedisClient extends BaseShardedJedisClient implements Initiali
      * @return the return value
      */
     public ReturnValue<Boolean> exists(String key) {
-        ReturnValue<Boolean> rv = new ReturnValue<>();
+        ShardedJedis resource = null;
         try {
-            Boolean bs = resource.exists(key);
-            rv.setValue(bs);
+            resource = jedisPool.getResource();
+            return ReturnValue.successResult(resource.exists(key));
         } finally {
-            resource.close();
+            closeResource(resource);
         }
-        return rv;
     }
 
     /**
@@ -101,14 +98,12 @@ public class ShardJedisClient extends BaseShardedJedisClient implements Initiali
      * @return the return value
      */
     public ReturnValue<Long> decrBy(byte[] key, long value) {
-        ReturnValue<Long> rv = new ReturnValue<>();
+        ShardedJedis resource = null;
         try {
-            Long bs = resource.decrBy(key, value);
-            rv.setValue(bs);
+            return ReturnValue.successResult(resource.decrBy(key, value));
         } finally {
-            resource.close();
+            closeResource(resource);
         }
-        return rv;
     }
 
     /**
@@ -119,14 +114,13 @@ public class ShardJedisClient extends BaseShardedJedisClient implements Initiali
      * @return the return value
      */
     public ReturnValue<Long> decrBy(String key, long value) {
-        ReturnValue<Long> rv = new ReturnValue<>();
+        ShardedJedis resource = null;
         try {
-            Long bs = resource.decrBy(key, value);
-            rv.setValue(bs);
+            resource = jedisPool.getResource();
+            return ReturnValue.successResult(resource.decrBy(key, value));
         } finally {
-            resource.close();
+            closeResource(resource);
         }
-        return rv;
     }
 
     /**
@@ -138,15 +132,16 @@ public class ShardJedisClient extends BaseShardedJedisClient implements Initiali
      * @return the return value
      */
     public ReturnValue<Long> decrBy(byte[] key, long value, int expire) {
-        ReturnValue<Long> rv = new ReturnValue<>();
+        ShardedJedis resource = null;
         try {
+            resource = jedisPool.getResource();
             Long bs = resource.decrBy(key, value);
             resource.expire(key, expire);
-            rv.setValue(bs);
+
+            return ReturnValue.successResult(bs);
         } finally {
-            resource.close();
+            closeResource(resource);
         }
-        return rv;
     }
 
     /**
@@ -155,18 +150,19 @@ public class ShardJedisClient extends BaseShardedJedisClient implements Initiali
      * @param key the key
      * @param value 递减步长
      * @param expire 失效时间
-     * @return return value
+     * @return value return value
      */
     public ReturnValue<Long> decrBy(String key, long value, int expire) {
-        ReturnValue<Long> rv = new ReturnValue<>();
+        ShardedJedis resource = null;
         try {
+            resource = jedisPool.getResource();
             Long bs = resource.decrBy(key, value);
             resource.expire(key, expire);
-            rv.setValue(bs);
+
+            return ReturnValue.successResult(bs);
         } finally {
-            resource.close();
+            closeResource(resource);
         }
-        return rv;
     }
 
     /**
@@ -174,17 +170,17 @@ public class ShardJedisClient extends BaseShardedJedisClient implements Initiali
      *
      * @param key the key
      * @param value 返回递增后的值
-     * @return return value
+     * @return value return value
      */
     public ReturnValue<Long> incrBy(String key, long value) {
-        ReturnValue<Long> rv = new ReturnValue<>();
+        ShardedJedis resource = null;
         try {
-            Long bs = resource.incrBy(key, value);
-            rv.setValue(bs);
+            resource = jedisPool.getResource();
+
+            return ReturnValue.successResult(resource.incrBy(key, value));
         } finally {
-            resource.close();
+            closeResource(resource);
         }
-        return rv;
     }
 
     /**
@@ -195,14 +191,14 @@ public class ShardJedisClient extends BaseShardedJedisClient implements Initiali
      * @return the return value
      */
     public ReturnValue<Long> incrBy(byte[] key, long value) {
-        ReturnValue<Long> rv = new ReturnValue<>();
+        ShardedJedis resource = null;
         try {
-            Long bs = resource.incrBy(key, value);
-            rv.setValue(bs);
+            resource = jedisPool.getResource();
+
+            return ReturnValue.successResult(resource.incrBy(key, value));
         } finally {
-            resource.close();
+            closeResource(resource);
         }
-        return rv;
     }
 
     /**
@@ -211,18 +207,19 @@ public class ShardJedisClient extends BaseShardedJedisClient implements Initiali
      * @param key the key
      * @param value the value
      * @param expire 失效时间
-     * @return return value
+     * @return value return value
      */
     public ReturnValue<Long> incrBy(String key, long value, int expire) {
-        ReturnValue<Long> rv = new ReturnValue<>();
+        ShardedJedis resource = null;
         try {
+            resource = jedisPool.getResource();
             Long bs = resource.incrBy(key, value);
             resource.expire(key, expire);
-            rv.setValue(bs);
+
+            return ReturnValue.successResult(bs);
         } finally {
-            resource.close();
+            closeResource(resource);
         }
-        return rv;
     }
 
     /**
@@ -234,15 +231,16 @@ public class ShardJedisClient extends BaseShardedJedisClient implements Initiali
      * @return the return value
      */
     public ReturnValue<Long> incrBy(byte[] key, long value, int expire) {
-        ReturnValue<Long> rv = new ReturnValue<>();
+        ShardedJedis resource = null;
         try {
+            resource = jedisPool.getResource();
             Long bs = resource.incrBy(key, value);
             resource.expire(key, expire);
-            rv.setValue(bs);
+
+            return ReturnValue.successResult(resource.incrBy(key, value));
         } finally {
-            resource.close();
+            closeResource(resource);
         }
-        return rv;
     }
 
     /**
@@ -253,14 +251,15 @@ public class ShardJedisClient extends BaseShardedJedisClient implements Initiali
      * @return the return value
      */
     public ReturnValue<Boolean> set(byte[] key, byte[] value) {
-        ReturnValue<Boolean> rv = new ReturnValue<>();
+        ShardedJedis resource = null;
         try {
+            resource = jedisPool.getResource();
             resource.set(key, value);
-            rv.setValue(true);
+
+            return ReturnValue.successResult();
         } finally {
-            resource.close();
+            closeResource(resource);
         }
-        return rv;
     }
 
     /**
@@ -271,14 +270,15 @@ public class ShardJedisClient extends BaseShardedJedisClient implements Initiali
      * @return the return value
      */
     public ReturnValue<Boolean> set(String key, String value) {
-        ReturnValue<Boolean> rv = new ReturnValue<>();
+        ShardedJedis resource = null;
         try {
+            resource = jedisPool.getResource();
             resource.set(key, value);
-            rv.setValue(true);
+
+            return ReturnValue.successResult();
         } finally {
-            resource.close();
+            closeResource(resource);
         }
-        return rv;
     }
 
     /**
@@ -290,14 +290,15 @@ public class ShardJedisClient extends BaseShardedJedisClient implements Initiali
      * @return the
      */
     public ReturnValue<Boolean> setex(byte[] key, byte[] value, int expire) {
-        ReturnValue<Boolean> rv = new ReturnValue<>();
+        ShardedJedis resource = null;
         try {
+            resource = jedisPool.getResource();
             resource.setex(key, expire, value);
-            rv.setValue(true);
+
+            return ReturnValue.successResult();
         } finally {
-            resource.close();
+            closeResource(resource);
         }
-        return rv;
     }
 
     /**
@@ -309,14 +310,15 @@ public class ShardJedisClient extends BaseShardedJedisClient implements Initiali
      * @return the
      */
     public ReturnValue<Boolean> setex(String key, String value, int expire) {
-        ReturnValue<Boolean> rv = new ReturnValue<>();
+        ShardedJedis resource = null;
         try {
+            resource = jedisPool.getResource();
             resource.setex(key, expire, value);
-            rv.setValue(true);
+
+            return ReturnValue.successResult();
         } finally {
-            resource.close();
+            closeResource(resource);
         }
-        return rv;
     }
 
     /**
@@ -328,14 +330,15 @@ public class ShardJedisClient extends BaseShardedJedisClient implements Initiali
      * @return the return value
      */
     public ReturnValue<Boolean> hset(byte[] key, byte[] field, byte[] value) {
-        ReturnValue<Boolean> rv = new ReturnValue<>();
+        ShardedJedis resource = null;
         try {
+            resource = jedisPool.getResource();
             resource.hset(key, field, value);
-            rv.setValue(true);
+
+            return ReturnValue.successResult();
         } finally {
-            resource.close();
+            closeResource(resource);
         }
-        return rv;
     }
 
     /**
@@ -347,14 +350,15 @@ public class ShardJedisClient extends BaseShardedJedisClient implements Initiali
      * @return the return value
      */
     public ReturnValue<Boolean> hset(String key, String field, String value) {
-        ReturnValue<Boolean> rv = new ReturnValue<>();
+        ShardedJedis resource = null;
         try {
+            resource = jedisPool.getResource();
             resource.hset(key, field, value);
-            rv.setValue(true);
+
+            return ReturnValue.successResult();
         } finally {
-            resource.close();
+            closeResource(resource);
         }
-        return rv;
     }
 
     /**
@@ -367,15 +371,16 @@ public class ShardJedisClient extends BaseShardedJedisClient implements Initiali
      * @return the return value
      */
     public ReturnValue<Boolean> hset(byte[] key, byte[] field, byte[] value, int expire) {
-        ReturnValue<Boolean> rv = new ReturnValue<>();
+        ShardedJedis resource = null;
         try {
+            resource = jedisPool.getResource();
             resource.hset(key, field, value);
             resource.expire(key, expire);
-            rv.setValue(true);
+
+            return ReturnValue.successResult();
         } finally {
-            resource.close();
+            closeResource(resource);
         }
-        return rv;
     }
 
     /**
@@ -388,15 +393,16 @@ public class ShardJedisClient extends BaseShardedJedisClient implements Initiali
      * @return the return value
      */
     public ReturnValue<Boolean> hset(String key, String field, String value, int expire) {
-        ReturnValue<Boolean> rv = new ReturnValue<>();
+        ShardedJedis resource = null;
         try {
+            resource = jedisPool.getResource();
             resource.hset(key, field, value);
             resource.expire(key, expire);
-            rv.setValue(true);
+
+            return ReturnValue.successResult();
         } finally {
-            resource.close();
+            closeResource(resource);
         }
-        return rv;
     }
 
     /**
@@ -407,14 +413,14 @@ public class ShardJedisClient extends BaseShardedJedisClient implements Initiali
      * @return the return value
      */
     public ReturnValue<byte[]> hget(byte[] key, byte[] field) {
-        ReturnValue<byte[]> rv = new ReturnValue<>();
+        ShardedJedis resource = null;
         try {
-            byte[] bs = resource.hget(key, field);
-            rv.setValue(bs);
+            resource = jedisPool.getResource();
+
+            return ReturnValue.successResult(resource.hget(key, field));
         } finally {
-            resource.close();
+            closeResource(resource);
         }
-        return rv;
     }
 
     /**
@@ -425,14 +431,14 @@ public class ShardJedisClient extends BaseShardedJedisClient implements Initiali
      * @return the return value
      */
     public ReturnValue<String> hget(String key, String field) {
-        ReturnValue<String> rv = new ReturnValue<>();
+        ShardedJedis resource = null;
         try {
-            String bs = resource.hget(key, field);
-            rv.setValue(bs);
+            resource = jedisPool.getResource();
+
+            return ReturnValue.successResult(resource.hget(key, field));
         } finally {
-            resource.close();
+            closeResource(resource);
         }
-        return rv;
     }
 
     /**
@@ -442,14 +448,14 @@ public class ShardJedisClient extends BaseShardedJedisClient implements Initiali
      * @return the return value
      */
     public ReturnValue<Map<String, String>> hgetAll(String key) {
-        ReturnValue<Map<String, String>> rv = new ReturnValue<>();
+        ShardedJedis resource = null;
         try {
-            Map<String, String> bs = resource.hgetAll(key);
-            rv.setValue(bs);
+            resource = jedisPool.getResource();
+
+            return ReturnValue.successResult(resource.hgetAll(key));
         } finally {
-            resource.close();
+            closeResource(resource);
         }
-        return rv;
     }
 
     /**
@@ -459,14 +465,14 @@ public class ShardJedisClient extends BaseShardedJedisClient implements Initiali
      * @return the return value
      */
     public ReturnValue<Map<byte[], byte[]>> hgetAll(byte[] key) {
-        ReturnValue<Map<byte[], byte[]>> rv = new ReturnValue<>();
+        ShardedJedis resource = null;
         try {
-            Map<byte[], byte[]> bs = resource.hgetAll(key);
-            rv.setValue(bs);
+            resource = jedisPool.getResource();
+
+            return ReturnValue.successResult(resource.hgetAll(key));
         } finally {
-            resource.close();
+            closeResource(resource);
         }
-        return rv;
     }
 
     /**
@@ -478,14 +484,14 @@ public class ShardJedisClient extends BaseShardedJedisClient implements Initiali
      * @return the return value
      */
     public ReturnValue<Long> hincrBy(String key, String field, long value) {
-        ReturnValue<Long> rv = new ReturnValue<>();
+        ShardedJedis resource = null;
         try {
-            Long bs = resource.hincrBy(key, field, value);
-            rv.setValue(bs);
+            resource = jedisPool.getResource();
+
+            return ReturnValue.successResult(resource.hincrBy(key, field, value));
         } finally {
-            resource.close();
+            closeResource(resource);
         }
-        return rv;
     }
 
     /**
@@ -497,14 +503,14 @@ public class ShardJedisClient extends BaseShardedJedisClient implements Initiali
      * @return the return value
      */
     public ReturnValue<Long> hincrBy(byte[] key, byte[] field, long value) {
-        ReturnValue<Long> rv = new ReturnValue<>();
+        ShardedJedis resource = null;
         try {
-            Long bs = resource.hincrBy(key, field, value);
-            rv.setValue(bs);
+            resource = jedisPool.getResource();
+
+            return ReturnValue.successResult(resource.hincrBy(key, field, value));
         } finally {
-            resource.close();
+            closeResource(resource);
         }
-        return rv;
     }
 
     /**
@@ -517,15 +523,16 @@ public class ShardJedisClient extends BaseShardedJedisClient implements Initiali
      * @return the return value
      */
     public ReturnValue<Long> hincrBy(String key, String field, long value, int expire) {
-        ReturnValue<Long> rv = new ReturnValue<>();
+        ShardedJedis resource = null;
         try {
+            resource = jedisPool.getResource();
             Long bs = resource.hincrBy(key, field, value);
             resource.expire(key, expire);
-            rv.setValue(bs);
+
+            return ReturnValue.successResult(bs);
         } finally {
-            resource.close();
+            closeResource(resource);
         }
-        return rv;
     }
 
     /**
@@ -538,15 +545,17 @@ public class ShardJedisClient extends BaseShardedJedisClient implements Initiali
      * @return the return value
      */
     public ReturnValue<Long> hincrBy(byte[] key, byte[] field, long value, int expire) {
-        ReturnValue<Long> rv = new ReturnValue<>();
+        ShardedJedis resource = null;
         try {
+            resource = jedisPool.getResource();
             Long bs = resource.hincrBy(key, field, value);
             resource.expire(key, expire);
-            rv.setValue(bs);
+
+            return ReturnValue.successResult(bs);
         } finally {
-            resource.close();
+            closeResource(resource);
         }
-        return rv;
+
     }
 
     /**
@@ -557,14 +566,14 @@ public class ShardJedisClient extends BaseShardedJedisClient implements Initiali
      * @return the return value
      */
     public ReturnValue<Boolean> hexists(String key, String field) {
-        ReturnValue<Boolean> rv = new ReturnValue<>();
+        ShardedJedis resource = null;
         try {
-            Boolean bs = resource.hexists(key, field);
-            rv.setValue(bs);
+            resource = jedisPool.getResource();
+
+            return ReturnValue.successResult(resource.hexists(key, field));
         } finally {
-            resource.close();
+            closeResource(resource);
         }
-        return rv;
     }
 
     /**
@@ -575,14 +584,15 @@ public class ShardJedisClient extends BaseShardedJedisClient implements Initiali
      * @return the return value
      */
     public ReturnValue<Boolean> hexists(byte[] key, byte[] field) {
-        ReturnValue<Boolean> rv = new ReturnValue<>();
+        ShardedJedis resource = null;
         try {
-            Boolean bs = resource.hexists(key, field);
-            rv.setValue(bs);
+            resource = jedisPool.getResource();
+
+            return ReturnValue.successResult(resource.hexists(key, field));
         } finally {
-            resource.close();
+            closeResource(resource);
         }
-        return rv;
+
     }
 
     /**
@@ -592,21 +602,22 @@ public class ShardJedisClient extends BaseShardedJedisClient implements Initiali
      * @param fields the fields
      * @param value the value
      * @param expire the expire
-     * @return return value
+     * @return value return value
      */
     public ReturnValue<Boolean> hincrByFields(byte[] key, Set<byte[]> fields, long value,
                                               int expire) {
-        ReturnValue<Boolean> rv = new ReturnValue<>();
+        ShardedJedis resource = null;
         try {
+            resource = jedisPool.getResource();
             for (byte[] field : fields) {
                 resource.hincrBy(key, field, value);
             }
             resource.expire(key, expire);
-            rv.setValue(true);
+
+            return ReturnValue.successResult();
         } finally {
-            resource.close();
+            closeResource(resource);
         }
-        return rv;
     }
 
     /**
@@ -615,19 +626,20 @@ public class ShardJedisClient extends BaseShardedJedisClient implements Initiali
      * @param key the key
      * @param fields the fields
      * @param value the value
-     * @return return value
+     * @return value return value
      */
     public ReturnValue<Boolean> hincrByFields(byte[] key, Set<byte[]> fields, long value) {
-        ReturnValue<Boolean> rv = new ReturnValue<>();
+        ShardedJedis resource = null;
         try {
+            resource = jedisPool.getResource();
             for (byte[] field : fields) {
                 resource.hincrBy(key, field, value);
             }
-            rv.setValue(true);
+
+            return ReturnValue.successResult();
         } finally {
-            resource.close();
+            closeResource(resource);
         }
-        return rv;
     }
 
     /**
@@ -637,21 +649,22 @@ public class ShardJedisClient extends BaseShardedJedisClient implements Initiali
      * @param fields the fields
      * @param value the value
      * @param expire the expire
-     * @return return value
+     * @return value return value
      */
     public ReturnValue<Boolean> hincrByFields(String key, Set<String> fields, long value,
                                               int expire) {
-        ReturnValue<Boolean> rv = new ReturnValue<>();
+        ShardedJedis resource = null;
         try {
+            resource = jedisPool.getResource();
             for (String field : fields) {
                 resource.hincrBy(key, field, value);
             }
             resource.expire(key, expire);
-            rv.setValue(true);
+
+            return ReturnValue.successResult();
         } finally {
-            resource.close();
+            closeResource(resource);
         }
-        return rv;
     }
 
     /**
@@ -660,19 +673,20 @@ public class ShardJedisClient extends BaseShardedJedisClient implements Initiali
      * @param key the key
      * @param fields the fields
      * @param value the value
-     * @return return value
+     * @return value return value
      */
     public ReturnValue<Boolean> hincrByFields(String key, Set<String> fields, long value) {
-        ReturnValue<Boolean> rv = new ReturnValue<>();
+        ShardedJedis resource = null;
         try {
+            resource = jedisPool.getResource();
             for (String field : fields) {
                 resource.hincrBy(key, field, value);
             }
-            rv.setValue(true);
+
+            return ReturnValue.successResult();
         } finally {
-            resource.close();
+            closeResource(resource);
         }
-        return rv;
     }
 
     /**
@@ -680,17 +694,18 @@ public class ShardJedisClient extends BaseShardedJedisClient implements Initiali
      *
      * @param key the key
      * @param expire the expire
-     * @return return value
+     * @return value return value
      */
     public ReturnValue<Boolean> expire(byte[] key, int expire) {
-        ReturnValue<Boolean> rv = new ReturnValue<>();
+        ShardedJedis resource = null;
         try {
+            resource = jedisPool.getResource();
             resource.expire(key, expire);
-            rv.setValue(true);
+
+            return ReturnValue.successResult();
         } finally {
-            resource.close();
+            closeResource(resource);
         }
-        return rv;
     }
 
     /**
@@ -698,17 +713,18 @@ public class ShardJedisClient extends BaseShardedJedisClient implements Initiali
      *
      * @param key the key
      * @param expire the expire
-     * @return return value
+     * @return value return value
      */
     public ReturnValue<Boolean> expire(String key, int expire) {
-        ReturnValue<Boolean> rv = new ReturnValue<>();
+        ShardedJedis resource = null;
         try {
+            resource = jedisPool.getResource();
             resource.expire(key, expire);
-            rv.setValue(true);
+
+            return ReturnValue.successResult();
         } finally {
-            resource.close();
+            closeResource(resource);
         }
-        return rv;
     }
 
     /**
@@ -717,17 +733,17 @@ public class ShardJedisClient extends BaseShardedJedisClient implements Initiali
      * @param key the key
      * @param start the start
      * @param end the end
-     * @return return value
+     * @return value return value
      */
     public ReturnValue<List<String>> lrange(String key, long start, long end) {
-        ReturnValue<List<String>> rv = new ReturnValue<>();
+        ShardedJedis resource = null;
         try {
-            List<String> lrange = resource.lrange(key, start, end);
-            rv.setValue(lrange);
+            resource = jedisPool.getResource();
+
+            return ReturnValue.successResult(resource.lrange(key, start, end));
         } finally {
-            resource.close();
+            closeResource(resource);
         }
-        return rv;
     }
 
     /**
@@ -735,9 +751,56 @@ public class ShardJedisClient extends BaseShardedJedisClient implements Initiali
      *
      * @param key the key
      * @param start the start
-     * @return return value
+     * @return value return value
      */
     public ReturnValue<List<String>> lrangeAll(String key, long start) {
         return lrange(key, start, -1);
     }
+
+    /**
+     * Del return value.
+     *
+     * @param key the key
+     * @return the return value
+     */
+    public ReturnValue<Long> del(String key) {
+        ShardedJedis resource = null;
+        try {
+            return ReturnValue.successResult(resource.del(key));
+        } finally {
+            closeResource(resource);
+        }
+    }
+
+    /**
+     * Hdel return value.
+     *
+     * @param key the key
+     * @param fields the fields
+     * @return the return value
+     */
+    public ReturnValue<Long> hdel(String key, String... fields) {
+        ShardedJedis resource = null;
+        try {
+            return ReturnValue.successResult(resource.hdel(key, fields));
+        } finally {
+            closeResource(resource);
+        }
+    }
+
+    /**
+     * 批量删除
+     *
+     * @param keys the keys
+     * @return return value
+     */
+    public ReturnValue<Long> del(byte[] keys) {
+        ShardedJedis resource = null;
+        try {
+            return ReturnValue.successResult(resource.del(keys));
+        } finally {
+            closeResource(resource);
+        }
+    }
+
 }
